@@ -96,6 +96,9 @@ def load_and_validate_csv(file):
     if cleaned_df is None or cleaned_df.empty:
         return None
 
+    # IMPORTANT:
+    # Return ONLY the DataFrame.
+    # render_sidebar() expects a DataFrame here.
     return cleaned_df
 
 
