@@ -1,66 +1,104 @@
-The application allows users to upload their own expense dataset or explore the included demo dataset.
+# 🛡️ SpendShield AI
 
-✨ Key Features
-📊 1. Financial Dashboard
+> **AI-powered personal finance intelligence that finds where your money is going — and shows you how to take it back.**
 
-The dashboard provides an overview of the user's spending.
+<p align="center">
 
-It includes:
+🚀 **[Live Demo](https://spendshield-ai-n4pvqhsxqoeyjvd7djg9vn.streamlit.app/)**  
+💻 **[GitHub Repository](https://github.com/srichaitanya2004/spendshield-ai)**  
+🔗 **[LinkedIn Post](YOUR_LINKEDIN_POST_URL)**
 
-Total spending
-Average spending
-Transaction count
-Discretionary spending
-Essential spending
-Category-level spending
-Spending trends
-Largest transactions
-Spending distribution
+</p>
 
-Interactive visualizations are generated using Plotly.
+SpendShield AI is an interactive personal finance analysis application built with **Streamlit, Pandas, Plotly, and Google Gemini AI**.
 
-🤖 2. AI Financial Diagnosis
+It transforms raw expense data into meaningful financial insights through spending analytics, AI-powered financial diagnosis, interactive budget simulation, and AI-based receipt scanning.
 
-SpendShield AI uses Gemini to analyze expense information and generate personalized financial insights.
+---
 
-The AI functionality is designed around multiple responsibilities.
+## 📋 Table of Contents
 
-Financial Analysis
+- [Overview](#overview)
+- [Problem Statement](#problem-statement)
+- [Solution](#solution)
+- [Key Features](#key-features)
+- [Application Workflow](#application-workflow)
+- [Architecture](#architecture)
+- [AI Architecture](#ai-architecture)
+- [Prompt Engineering Strategy](#prompt-engineering-strategy)
+- [Tech Stack](#tech-stack)
+- [Project Structure](#project-structure)
+- [Local Setup](#local-setup)
+- [Environment Variables](#environment-variables)
+- [Gemini Integration](#gemini-integration)
+- [Receipt Scanner Architecture](#receipt-scanner-architecture)
+- [Data Processing](#data-processing)
+- [Budget Simulation Logic](#budget-simulation-logic)
+- [Deployment](#deployment)
+- [Screenshots](#screenshots)
+- [Limitations](#limitations)
+- [Future Improvements](#future-improvements)
+- [Privacy & Security](#privacy--security)
+- [Demo Dataset](#demo-dataset)
+- [Author](#author)
 
-The system analyzes:
+---
 
-Total spending
-Category distribution
-Essential vs discretionary expenses
-Large transactions
-Spending patterns
-Potential areas for optimization
-Brutal Roast
+## 🎯 Overview
 
-The application can provide a humorous critique of unnecessary spending.
+**SpendShield AI** is a personal finance intelligence dashboard designed to help users understand their spending behavior and identify opportunities to reduce unnecessary expenses.
 
-The purpose is to make financial analysis more engaging while keeping the output related to the actual spending data.
+Instead of simply displaying transaction records, the application combines:
 
-Recovery Planning
+- 📊 Data analytics
+- 📈 Interactive visualizations
+- 🤖 Generative AI
+- 💰 Budget simulation
+- 📸 Receipt image analysis
+- ✏️ Editable expense data
 
-The AI can generate a structured recovery plan based on the user's spending information.
+The goal is to convert raw financial data into **clear, actionable insights**.
 
-The objective is to convert analysis into practical actions.
+---
 
-💹 3. Budget Simulator
+## 📌 Problem Statement
 
-The Budget Simulator allows users to experiment with hypothetical spending reductions.
+Managing personal expenses can be difficult when transaction data is scattered across different sources.
 
-Users can adjust reduction percentages for spending categories and immediately see the effect on projected spending.
+Traditional expense trackers often show:
 
-For example:
+> "You spent ₹52,448."
 
-Current Category Spending
-          ↓
-Reduction Percentage
-          ↓
-Projected Spending
-          ↓
+But they don't necessarily explain:
+
+- Where most of the money went
+- How much spending was essential
+- How much was discretionary
+- Which categories have optimization potential
+- How much could potentially be saved
+- What behavioral changes could improve spending
+
+SpendShield AI addresses this by combining **data analysis with AI-generated financial guidance**.
+
+---
+
+## 💡 Solution
+
+SpendShield AI follows a simple workflow:
+
+```text
+Raw Expense Data
+       ↓
+Data Processing
+       ↓
+Spending Analysis
+       ↓
+Interactive Dashboard
+       ↓
+AI Financial Diagnosis
+       ↓
+Budget Simulation
+       ↓
 Potential Savings
 
 The basic calculation is:
