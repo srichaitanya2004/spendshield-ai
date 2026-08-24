@@ -6,9 +6,6 @@ Handles:
 - Data validation
 - Data cleaning
 - Sample/demo data
-
-The service layer performs data operations and returns structured
-results. UI-specific messages are handled by the Streamlit components.
 """
 
 import pandas as pd
@@ -34,47 +31,35 @@ def load_and_validate_csv(file):
     """
     Load an uploaded CSV and validate its structure.
 
-    Args:
-        file: Streamlit UploadedFile or file-like object.
-
     Returns:
-        tuple:
-            (DataFrame, validation_result)
-
-        If loading fails:
-            (None, validation_result)
+        pd.DataFrame if valid.
+        None if invalid.
     """
 
     try:
+        # Read uploaded CSV
         df = pd.read_csv(file)
 
-    except Exception as exc:
-        return None, {
-            "is_valid": False,
-            "errors": [
-                f"Could not read the CSV file: {exc}"
-            ],
-            "warnings": [],
-        }
+    except Exception:
+        return None
 
     # -----------------------------------------------------
     # BASIC FILE VALIDATION
     # -----------------------------------------------------
 
-    if df.empty:
-        return None, {
-            "is_valid": False,
-            "errors": ["The uploaded CSV contains no rows."],
-            "warnings": [],
-        }
+    if df is None or df.empty:
+        return None
 
-    # Normalize column names.
+    # -----------------------------------------------------
+    # NORMALIZE COLUMN NAMES
+    # -----------------------------------------------------
+
     df.columns = (
         df.columns
         .astype(str)
         .str.strip()
         .str.lower()
-        .str.replace(" ", "_")
+        .str.replace(" ", "_", regex=False)
     )
 
     # -----------------------------------------------------
@@ -88,25 +73,30 @@ def load_and_validate_csv(file):
     ]
 
     if missing_columns:
-        return None, {
-            "is_valid": False,
-            "errors": [
-                "Missing required columns: "
-                + ", ".join(missing_columns)
-            ],
-            "warnings": [],
-        }
+        return None
 
     # -----------------------------------------------------
     # VALIDATE DATA
     # -----------------------------------------------------
 
-    validation_result = data_cleaning.validate_dataframe(df)
+    try:
+        validation_result = data_cleaning.validate_dataframe(df)
+    except Exception:
+        return None
 
-    if not validation_result["is_valid"]:
-        return None, validation_result
+    if not validation_result.get("is_valid", False):
+        return None
 
-    return df, validation_result
+    # -----------------------------------------------------
+    # CLEAN DATA
+    # -----------------------------------------------------
+
+    cleaned_df = clean_data(df)
+
+    if cleaned_df is None or cleaned_df.empty:
+        return None
+
+    return cleaned_df
 
 
 # ---------------------------------------------------------
@@ -116,13 +106,6 @@ def load_and_validate_csv(file):
 def clean_data(df):
     """
     Clean and standardize an expense DataFrame.
-
-    The pipeline intentionally does not silently delete
-    statistical outliers. Unusual transactions are flagged
-    separately by detect_anomalies().
-
-    Args:
-        df: Raw expense DataFrame.
 
     Returns:
         Cleaned DataFrame.
@@ -137,7 +120,11 @@ def clean_data(df):
     # REMOVE EXACT DUPLICATES
     # -----------------------------------------------------
 
-    clean_df = clean_df.drop_duplicates().reset_index(drop=True)
+    clean_df = (
+        clean_df
+        .drop_duplicates()
+        .reset_index(drop=True)
+    )
 
     # -----------------------------------------------------
     # CLEAN AMOUNTS
@@ -148,16 +135,12 @@ def clean_data(df):
         "amount",
     )
 
-    # Remove rows where amount cannot be interpreted.
+    # Remove invalid amounts
     clean_df = clean_df.dropna(
         subset=["amount"]
     )
 
-    # Expenses must have a positive amount.
-    #
-    # Negative values may represent refunds/credits.
-    # For the current expense-only product, we exclude them
-    # rather than silently converting them to positive expenses.
+    # Expenses must have positive amounts
     clean_df = clean_df[
         clean_df["amount"] > 0
     ]
@@ -219,9 +202,11 @@ def clean_data(df):
     # -----------------------------------------------------
 
     if "date" in clean_df.columns:
-        clean_df = clean_df.sort_values(
-            "date"
-        ).reset_index(drop=True)
+        clean_df = (
+            clean_df
+            .sort_values("date")
+            .reset_index(drop=True)
+        )
 
     return clean_df
 
@@ -233,8 +218,6 @@ def clean_data(df):
 def get_data_summary(df):
     """
     Return a compact summary of an expense dataset.
-
-    Useful for UI messages and AI context.
     """
 
     if df is None or df.empty:
@@ -275,10 +258,7 @@ def get_data_summary(df):
 
 def get_sample_data():
     """
-    Generate realistic sample expense data for demos/testing.
-
-    Returns:
-        pd.DataFrame
+    Generate realistic sample expense data.
     """
 
     sample_data = {
@@ -431,9 +411,6 @@ def get_sample_data():
 def get_clean_sample_data():
     """
     Return cleaned and enriched demo data.
-
-    Useful when the application needs a ready-to-display
-    dataset without going through CSV upload.
     """
 
     sample_df = get_sample_data()
