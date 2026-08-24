@@ -1,130 +1,95 @@
 # 🛡️ SpendShield AI
 
+> **AI-powered personal finance intelligence that finds where your money is going — and shows you how to take it back.**
+
+SpendShield AI is an interactive personal finance analysis application built with **Streamlit, Pandas, Plotly, and Google Gemini AI**.
+
+It transforms raw expense data into meaningful financial insights through spending analytics, AI-powered financial diagnosis, interactive budget simulation, and AI-based receipt scanning.
+
+---
+
+## 🌐 Live Deployment
+
+🚀 **Live Demo:**  
+https://spendshield-ai-n4pvqhsxqoeyjvd7djg9vn.streamlit.app/
+
+---
+
 ## 📋 Table of Contents
-- [Overview](#overview)
-- [Problem Statement](#problem-statement)
-- [Solution](#solution)
-- [Key Features](#key-features)
-- [Architecture](#architecture)
-- [AI Architecture](#ai-architecture)
-- [Prompt Engineering Strategy](#prompt-engineering-strategy)
-- [Screenshots](#screenshots)
-- [Tech Stack](#tech-stack)
-- [Local Setup](#local-setup)
-- [Environment Variables](#environment-variables)
-- [Deployment](#deployment)
-- [Project Structure](#project-structure)
-- [Gemini Integration](#gemini-integration)
-- [Future Improvements](#future-improvements)
-- [Author](#author)
-- [Live Deployment](#live-deployment)
 
-## 🎯 Overview
+- [Overview](#-overview)
+- [Problem Statement](#-problem-statement)
+- [Solution](#-solution)
+- [Key Features](#-key-features)
+- [Application Workflow](#-application-workflow)
+- [Architecture](#-architecture)
+- [AI Architecture](#-ai-architecture)
+- [Prompt Engineering Strategy](#-prompt-engineering-strategy)
+- [Tech Stack](#-tech-stack)
+- [Project Structure](#-project-structure)
+- [Local Setup](#-local-setup)
+- [Environment Variables](#-environment-variables)
+- [Gemini Integration](#-gemini-integration)
+- [Deployment](#-deployment)
+- [Screenshots](#-screenshots)
+- [Future Improvements](#-future-improvements)
+- [Author](#-author)
 
-**SpendShield AI** is an AI-powered personal finance analysis and recovery dashboard that transforms your expense data into actionable insights. Using Google's Gemini AI, it provides a humorous but brutally honest analysis of your spending habits and creates a strict recovery plan to help you save money.
+---
 
-## 📌 Problem Statement
+# 🎯 Overview
 
-People struggle with understanding their spending patterns and making meaningful changes. Traditional budgeting apps provide data but don't offer personalized, actionable insights or the emotional engagement needed to drive behavior change.
+**SpendShield AI** is a personal finance intelligence dashboard designed to help users understand their spending behavior and identify opportunities to reduce unnecessary expenses.
 
-**The Expense Roaster** concept: Users upload their monthly expenses, and AI analyzes the data to brutally roast their discretionary spending while providing a strict budget recovery plan.
+Instead of simply displaying transaction records, the application combines:
 
-## 💡 Solution
+- 📊 Data analytics
+- 📈 Interactive visualizations
+- 🤖 Generative AI
+- 💰 Budget simulation
+- 📸 Receipt image analysis
+- ✏️ Editable expense data
 
-SpendShield AI turns this concept into a polished, professional product that:
+The goal is to convert raw financial data into **clear, actionable insights**.
 
-1. **Analyzes** your spending patterns with advanced AI
-2. **Roasts** your bad habits in an entertaining way
-3. **Recovers** your finances with a strict action plan
-4. **Simulates** potential savings with interactive tools
-5. **Scans** receipts using computer vision
+---
 
-## ✨ Key Features
+# 📌 Problem Statement
 
-### 📊 Financial Dashboard
-- Real-time KPI metrics (total spending, discretionary, savings potential)
-- Interactive Plotly visualizations
-- Category breakdown and trends
-- Essential vs. discretionary analysis
+Managing personal expenses can be difficult when transaction data is scattered across different sources.
 
-### 🤖 AI Financial Diagnosis
-- **Brutal Roast**: Humorous but helpful critique of spending habits
-- **Recovery Plan**: Structured, actionable savings strategy
-- **Intelligent Analysis**: Uses dynamic context from your actual data
+Traditional expense trackers often show:
 
-### 💹 Budget Simulator
-- Interactive sliders for each spending category
-- Real-time savings projections
-- Annual savings estimates
-- Comparison visualizations
+> "You spent ₹52,448."
 
-### 📸 Receipt Scanner
-- Upload or take photo of receipts
-- Gemini Vision extracts merchant, date, amount, and items
-- One-click addition to your expense data
+But they don't necessarily explain:
 
-### ✏️ Data Editor
-- Edit any expense in the dataset
-- Update categories, amounts, or descriptions
-- Automatic recalculation of metrics
+- Where most of the money went
+- How much spending was essential
+- How much was discretionary
+- Which categories have optimization potential
+- How much could potentially be saved
+- What specific behavioral changes could improve spending
 
-## 🏗️ Architecture
+SpendShield AI addresses this by combining **data analysis with AI-generated financial guidance**.
 
-## 🤖 AI Architecture
+---
 
-### Role-Based Prompting
-SpendShield uses specialized AI roles for different tasks:
+# 💡 Solution
 
-1. **Financial Analyst**: Analyzes spending patterns and identifies trends
-2. **Brutal Roaster**: Delivers humorous but helpful critiques
-3. **Recovery Strategist**: Creates strict, actionable recovery plans
-4. **Receipt Agent**: Extracts structured data from receipt images
+SpendShield AI follows a simple approach:
 
-### Context Engineering
-The AI receives dynamic context built from user data:
-- Total and discretionary spending
-- Category breakdown
-- Largest transactions
-- Recurring expenses
-- Spending trends
-
-## 🎯 Prompt Engineering Strategy
-
-### 1. System-Level Instructions
-Each AI role has specific system instructions that define its personality and output format.
-
-### 2. Dynamic Context
-F-strings populate the context with actual user data, making the AI response personalized.
-
-### 3. Structured Output
-Recovery plans use JSON format for consistent, parsable results.
-
-### 4. Multi-Modal
-Gemini Vision processes receipt images for expense extraction.
-
-## 📸 Screenshots
-
-*Screenshots to be added after deployment*
-
-## 🛠️ Tech Stack
-
-- **Python** 3.9+
-- **Streamlit** - UI Framework
-- **Pandas** - Data Processing
-- **Plotly** - Interactive Visualizations
-- **Google Gemini** - AI Engine
-- **Pillow** - Image Processing
-
-## 💻 Local Setup
-
-### Prerequisites
-- Python 3.9 or higher
-- pip (Python package manager)
-- Gemini API key
-
-### Installation
-
-1. **Clone the repository**
-```bash
-git clone https://github.com/yourusername/spendshield-ai.git
-cd spendshield-ai
+```text
+Raw Expense Data
+       ↓
+Data Processing
+       ↓
+Spending Analysis
+       ↓
+Interactive Dashboard
+       ↓
+AI Financial Diagnosis
+       ↓
+Budget Simulation
+       ↓
+Potential Savings
