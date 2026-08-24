@@ -1,0 +1,62 @@
+date,description,category,amount,type
+2026-01-01,Netflix,Entertainment,649,Discretionary
+2026-01-01,Rent,Housing,15000,Essential
+2026-01-02,Uber,Transport,450,Discretionary
+2026-01-02,Groceries,Food,3200,Essential
+2026-01-03,Dinner Out,Dining,1200,Discretionary
+2026-01-03,Amazon,Shopping,2500,Discretionary
+2026-01-04,Utilities,Utilities,1000,Essential
+2026-01-04,Coffee,Food,150,Discretionary
+2026-01-05,Gas,Transport,500,Essential
+2026-01-05,Gym,Health,800,Essential
+2026-01-06,Spotify,Entertainment,199,Discretionary
+2026-01-06,Shopping,Shopping,1800,Discretionary
+2026-01-07,Phone Bill,Utilities,500,Essential
+2026-01-07,Groceries,Food,2500,Essential
+2026-01-08,Movie,Entertainment,600,Discretionary
+2026-01-08,Uber Eats,Dining,750,Discretionary
+2026-01-09,Rent,Housing,15000,Essential
+2026-01-09,Netflix,Entertainment,649,Discretionary
+2026-01-10,Groceries,Food,2800,Essential
+2026-01-10,Dining,Dining,950,Discretionary
+2026-01-11,Amazon,Shopping,3000,Discretionary
+2026-01-11,Coffee,Food,120,Discretionary
+2026-01-12,Gas,Transport,550,Essential
+2026-01-12,Groceries,Food,2100,Essential
+2026-01-13,Uber,Transport,380,Discretionary
+2026-01-13,Shopping,Shopping,2200,Discretionary
+2026-01-14,Phone Bill,Utilities,500,Essential
+2026-01-14,Groceries,Food,2700,Essential
+2026-01-15,Dinner,Dining,1400,Discretionary
+2026-01-15,Netflix,Entertainment,649,Discretionary
+2026-01-16,Amazon,Shopping,1800,Discretionary
+2026-01-16,Groceries,Food,3000,Essential
+2026-01-17,Uber,Transport,420,Discretionary
+2026-01-17,Coffee,Food,130,Discretionary
+2026-01-18,Gas,Transport,480,Essential
+2026-01-18,Groceries,Food,2300,Essential
+2026-01-19,Movie,Entertainment,550,Discretionary
+2026-01-19,Dining,Dining,1100,Discretionary
+2026-01-20,Utilities,Utilities,950,Essential
+2026-01-20,Spotify,Entertainment,199,Discretionary
+2026-01-21,Groceries,Food,2600,Essential
+2026-01-21,Shopping,Shopping,1500,Discretionary
+2026-01-22,Uber Eats,Dining,800,Discretionary
+2026-01-22,Gym,Health,800,Essential
+2026-01-23,Rent,Housing,15000,Essential
+2026-01-23,Netflix,Entertainment,649,Discretionary
+2026-01-24,Groceries,Food,2900,Essential
+2026-01-24,Coffee,Food,140,Discretionary
+2026-01-25,Amazon,Shopping,2000,Discretionary
+2026-01-25,Dining,Dining,1300,Discretionary
+2026-01-26,Gas,Transport,520,Essential
+2026-01-26,Groceries,Food,2400,Essential
+2026-01-27,Uber,Transport,350,Discretionary
+2026-01-27,Shopping,Shopping,1600,Discretionary
+2026-01-28,Phone Bill,Utilities,500,Essential
+2026-01-28,Groceries,Food,2800,Essential
+2026-01-29,Dinner,Dining,1250,Discretionary
+2026-01-29,Netflix,Entertainment,649,Discretionary
+2026-01-30,Amazon,Shopping,2200,Discretionary
+2026-01-30,Groceries,Food,2600,Essential
+2026-01-31,Uber,Transport,400,Discretionary
