@@ -36,6 +36,10 @@ def render_simulator(df):
     if st.button("🔄 Update Projections", use_container_width=True):
         # Calculate projected spending
         projected_df = df.copy()
+        projected_df["amount"] = pd.to_numeric(
+         projected_df["amount"],
+         errors="coerce"
+          ).astype(float)
         
         for category, reduction in reductions.items():
             mask = projected_df['category'] == category
