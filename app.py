@@ -36,8 +36,6 @@ st.markdown(
     """
 <style>
 
-/* -------------------- GLOBAL -------------------- */
-
 .main {
     padding: 1rem 2rem 3rem 2rem;
 }
@@ -57,9 +55,6 @@ st.markdown(
     padding: 1rem;
     border-radius: 14px;
 }
-
-
-/* -------------------- HERO -------------------- */
 
 .hero-container {
     padding: 1rem 0 0.5rem 0;
@@ -81,9 +76,6 @@ st.markdown(
     margin-top: 0.25rem;
 }
 
-
-/* -------------------- SECTION HEADERS -------------------- */
-
 .section-title {
     font-size: 1.5rem;
     font-weight: 700;
@@ -94,9 +86,6 @@ st.markdown(
     opacity: 0.7;
     margin-bottom: 1rem;
 }
-
-
-/* -------------------- DIVIDER -------------------- */
 
 .custom-divider {
     border: none;
@@ -110,9 +99,6 @@ st.markdown(
     margin: 1.5rem 0;
 }
 
-
-/* -------------------- AI CARD -------------------- */
-
 .ai-card {
     padding: 1.4rem;
     border-radius: 16px;
@@ -125,106 +111,11 @@ st.markdown(
     margin: 0.5rem 0 1rem 0;
 }
 
-.ai-card-title {
-    font-size: 1.25rem;
-    font-weight: 700;
-}
-
-.ai-card-text {
-    opacity: 0.75;
-}
-
-
-/* -------------------- HEALTH SCORE -------------------- */
-
 .health-score {
     text-align: center;
     padding: 1.5rem;
     border-radius: 18px;
     border: 1px solid rgba(128, 128, 128, 0.15);
-    background: rgba(128, 128, 128, 0.04);
-}
-
-.health-score-number {
-    font-size: 3rem;
-    font-weight: 800;
-}
-
-.health-score-label {
-    font-size: 1rem;
-    opacity: 0.7;
-}
-
-
-/* -------------------- INSIGHT CARDS -------------------- */
-
-.insight-card {
-    padding: 1rem 1.2rem;
-    border-radius: 12px;
-    border: 1px solid rgba(128, 128, 128, 0.15);
-    background: rgba(128, 128, 128, 0.04);
-    margin-bottom: 0.7rem;
-}
-
-.insight-title {
-    font-weight: 700;
-    margin-bottom: 0.2rem;
-}
-
-.insight-text {
-    opacity: 0.75;
-}
-
-
-/* -------------------- BUTTONS -------------------- */
-
-.stButton > button {
-    border-radius: 10px;
-    font-weight: 600;
-    transition: all 0.2s ease;
-}
-
-.stButton > button:hover {
-    transform: translateY(-1px);
-}
-
-
-/* -------------------- SIDEBAR -------------------- */
-
-.sidebar-brand {
-    font-size: 1.35rem;
-    font-weight: 800;
-}
-
-.sidebar-caption {
-    font-size: 0.8rem;
-    opacity: 0.6;
-}
-
-
-/* -------------------- STATUS -------------------- */
-
-.status-pill {
-    display: inline-block;
-    padding: 0.25rem 0.7rem;
-    border-radius: 999px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    background: rgba(46, 204, 113, 0.12);
-}
-
-
-/* -------------------- MOBILE -------------------- */
-
-@media (max-width: 768px) {
-    .main {
-        padding: 0.5rem;
-    }
-
-    .block-container {
-        padding-left: 0.75rem;
-        padding-right: 0.75rem;
-    }
 }
 
 </style>
@@ -244,13 +135,21 @@ def init_session_state():
         "data_loaded": False,
         "df_raw": None,
         "df_cleaned": None,
+
         "analysis_done": False,
         "roast_result": None,
         "recovery_plan": None,
+
         "receipt_data": None,
+
         "budget_sim": {},
+
         "nav_section": "Dashboard",
+
+        "uploaded_file_id": None,
+
         "data_version": None,
+
         "analysis_version": None,
         "analysis_timestamp": None,
     }
@@ -264,34 +163,36 @@ init_session_state()
 
 
 # ============================================================
-# HELPER FUNCTIONS
+# HELPERS
 # ============================================================
 
 def dataframe_signature(df):
-    """
-    Create a lightweight signature for the current dataframe.
-
-    Used to determine whether the data has changed since the
-    previous AI analysis.
-    """
+    """Create a simple signature for dataframe version tracking."""
 
     if df is None or df.empty:
-        return None
+        return "empty"
 
     try:
-        raw = pd.util.hash_pandas_object(
-            df,
-            index=True
-        ).values.tobytes()
-
-        return hashlib.md5(raw).hexdigest()
+        data_string = df.to_csv(index=False)
+        return hashlib.md5(
+            data_string.encode("utf-8")
+        ).hexdigest()
 
     except Exception:
         return str(len(df))
 
 
+def format_currency(value):
+    """Format Indian Rupee values."""
+
+    try:
+        return f"₹{float(value):,.0f}"
+    except (TypeError, ValueError):
+        return "₹0"
+
+
 def invalidate_analysis():
-    """Clear AI results because underlying expense data changed."""
+    """Invalidate previous AI results."""
 
     st.session_state.analysis_done = False
     st.session_state.roast_result = None
@@ -303,6 +204,12 @@ def invalidate_analysis():
 def update_data(df):
     """Update dataframe and invalidate stale AI analysis."""
 
+    if df is None:
+        st.session_state.df_cleaned = None
+        st.session_state.data_version = None
+        invalidate_analysis()
+        return
+
     st.session_state.df_cleaned = df.copy()
     st.session_state.data_version = dataframe_signature(df)
 
@@ -311,59 +218,50 @@ def update_data(df):
 
 def get_financial_health_score(metrics):
     """
-    Calculate an approximate expense-health score.
+    Calculate an approximate spending-health score.
 
-    Important:
-    This is NOT a complete financial health score because
-    income, debt, investments and savings balances are unknown.
-
-    The score is based only on spending behavior.
+    This is based only on spending behavior because income,
+    debt, investments and savings balances are not available.
     """
 
-    discretionary_pct = metrics.get("discretionary_pct", 0)
+    discretionary_pct = metrics.get(
+        "discretionary_pct",
+        0
+    )
 
     score = 100
 
-    # Penalize high discretionary spending.
     if discretionary_pct > 60:
         score -= 35
+
     elif discretionary_pct > 50:
         score -= 25
+
     elif discretionary_pct > 40:
         score -= 15
+
     elif discretionary_pct > 30:
         score -= 8
 
-    # Reward lower discretionary spending.
-    elif discretionary_pct <= 20:
-        score += 0
-
-    # Keep within range.
-    score = max(0, min(100, score))
-
-    return score
+    return max(
+        0,
+        min(100, score)
+    )
 
 
 def health_label(score):
-    """Return a human-readable health label."""
+    """Return health label."""
 
     if score >= 85:
         return "Excellent"
+
     if score >= 70:
         return "Healthy"
+
     if score >= 50:
         return "Needs Attention"
 
     return "High Risk"
-
-
-def format_currency(value):
-    """Format Indian Rupee values consistently."""
-
-    try:
-        return f"₹{float(value):,.0f}"
-    except (TypeError, ValueError):
-        return "₹0"
 
 
 # ============================================================
@@ -371,12 +269,14 @@ def format_currency(value):
 # ============================================================
 
 def render_sidebar():
-    """Render the application sidebar."""
+    """Render the application sidebar safely."""
 
     with st.sidebar:
 
         st.markdown(
-            '<div class="sidebar-brand">🛡️ SpendShield AI</div>',
+            '<div class="sidebar-brand">'
+            '🛡️ SpendShield AI'
+            '</div>',
             unsafe_allow_html=True
         )
 
@@ -401,38 +301,113 @@ def render_sidebar():
             help=(
                 "Required columns: date, description, "
                 "category, amount, type"
-            )
+            ),
+            key="expense_csv_uploader"
         )
 
         if uploaded_file is not None:
 
-            # Detect a new uploaded file.
-            file_id = f"{uploaded_file.name}_{uploaded_file.size}"
+            file_id = (
+                f"{uploaded_file.name}_"
+                f"{uploaded_file.size}"
+            )
 
-            if st.session_state.get("uploaded_file_id") != file_id:
+            previous_file_id = st.session_state.get(
+                "uploaded_file_id"
+            )
 
-                with st.spinner("🔄 Processing your expenses..."):
+            if previous_file_id != file_id:
 
-                    df = expense_service.load_and_validate_csv(
-                        uploaded_file
-                    )
+                with st.spinner(
+                    "🔄 Processing your expenses..."
+                ):
 
-                    if df is not None and not df.empty:
+                    try:
 
-                        cleaned_df = expense_service.clean_data(df)
-
-                        if cleaned_df.empty:
-                            st.error(
-                                "The file contains no valid expense "
-                                "transactions after cleaning."
+                        df = (
+                            expense_service
+                            .load_and_validate_csv(
+                                uploaded_file
                             )
-                        else:
-                            st.session_state.df_raw = df
+                        )
 
-                            update_data(cleaned_df)
+                    except Exception as e:
+
+                        st.error(
+                            f"CSV processing failed: {str(e)}"
+                        )
+
+                        df = None
+
+                    if df is None:
+
+                        st.error(
+                            "❌ Could not load the CSV file."
+                        )
+
+                    elif not isinstance(df, pd.DataFrame):
+
+                        st.error(
+                            "❌ The CSV loader did not return "
+                            "a valid dataframe."
+                        )
+
+                    elif df.empty:
+
+                        st.error(
+                            "❌ The uploaded CSV contains "
+                            "no rows."
+                        )
+
+                    else:
+
+                        try:
+
+                            cleaned_df = (
+                                expense_service
+                                .clean_data(df)
+                            )
+
+                        except Exception as e:
+
+                            st.error(
+                                f"Data cleaning failed: {str(e)}"
+                            )
+
+                            cleaned_df = None
+
+                        if (
+                            cleaned_df is None
+                            or not isinstance(
+                                cleaned_df,
+                                pd.DataFrame
+                            )
+                            or cleaned_df.empty
+                        ):
+
+                            st.error(
+                                "❌ The file contains no valid "
+                                "expense transactions after "
+                                "cleaning."
+                            )
+
+                        else:
+
+                            st.session_state.df_raw = (
+                                df.copy()
+                            )
+
+                            update_data(
+                                cleaned_df
+                            )
 
                             st.session_state.data_loaded = True
-                            st.session_state.uploaded_file_id = file_id
+
+                            st.session_state.uploaded_file_id = (
+                                file_id
+                            )
+
+                            st.session_state.receipt_data = None
 
                             st.success(
                                 "✅ Expenses imported successfully."
@@ -448,18 +423,49 @@ def render_sidebar():
 
         if st.button(
             "✨ Load Demo Expenses",
-            use_container_width=True
+            use_container_width=True,
+            key="load_demo"
         ):
 
-            demo_df = expense_service.get_sample_data()
+            try:
 
-            update_data(demo_df)
+                demo_df = (
+                    expense_service
+                    .get_sample_data()
+                )
 
-            st.session_state.df_raw = demo_df.copy()
-            st.session_state.data_loaded = True
-            st.session_state.uploaded_file_id = "demo"
+                if (
+                    demo_df is not None
+                    and not demo_df.empty
+                ):
 
-            st.rerun()
+                    update_data(
+                        demo_df
+                    )
+
+                    st.session_state.df_raw = (
+                        demo_df.copy()
+                    )
+
+                    st.session_state.data_loaded = True
+
+                    st.session_state.uploaded_file_id = (
+                        "demo"
+                    )
+
+                    st.rerun()
+
+                else:
+
+                    st.error(
+                        "Demo dataset is empty."
+                    )
+
+            except Exception as e:
+
+                st.error(
+                    f"Could not load demo data: {str(e)}"
+                )
 
         # ----------------------------------------------------
         # NAVIGATION
@@ -479,68 +485,124 @@ def render_sidebar():
 
             label = f"{icon} {option}"
 
+            button_type = (
+                "primary"
+                if st.session_state.nav_section == option
+                else "secondary"
+            )
+
             if st.button(
                 label,
                 use_container_width=True,
-                type=(
-                    "primary"
-                    if st.session_state.nav_section == option
-                    else "secondary"
-                )
+                type=button_type,
+                key=f"nav_{option}"
             ):
-                st.session_state.nav_section = option
-                st.rerun()
+
+                if (
+                    st.session_state.nav_section
+                    != option
+                ):
+
+                    st.session_state.nav_section = (
+                        option
+                    )
+
+                    st.rerun()
 
         # ----------------------------------------------------
         # DATA SUMMARY
         # ----------------------------------------------------
 
-        if st.session_state.data_loaded:
+        if st.session_state.get(
+            "data_loaded",
+            False
+        ):
 
-            st.markdown("---")
-            st.markdown("#### 📊 Dataset")
-
-            df = st.session_state.df_cleaned
-
-            st.metric(
-                "Total Spending",
-                format_currency(df["amount"].sum())
+            df = st.session_state.get(
+                "df_cleaned"
             )
 
-            st.metric(
-                "Transactions",
-                f"{len(df):,}"
-            )
+            # IMPORTANT:
+            # Never access df.empty or df["amount"]
+            # until we know df is a real dataframe.
 
-            if "date" in df.columns and not df.empty:
+            if (
+                df is not None
+                and isinstance(df, pd.DataFrame)
+                and not df.empty
+            ):
 
-                start_date = pd.to_datetime(
-                    df["date"]
-                ).min().strftime("%d %b %Y")
+                st.markdown("---")
+                st.markdown("#### 📊 Dataset")
 
-                end_date = pd.to_datetime(
-                    df["date"]
-                ).max().strftime("%d %b %Y")
+                if "amount" in df.columns:
 
-                st.caption(
-                    f"📅 {start_date} → {end_date}"
+                    try:
+
+                        total = pd.to_numeric(
+                            df["amount"],
+                            errors="coerce"
+                        ).sum()
+
+                        st.metric(
+                            "Total Spending",
+                            format_currency(total)
+                        )
+
+                    except Exception:
+
+                        st.metric(
+                            "Total Spending",
+                            "₹0"
+                        )
+
+                else:
+
+                    st.metric(
+                        "Total Spending",
+                        "₹0"
+                    )
+
+                st.metric(
+                    "Transactions",
+                    f"{len(df):,}"
                 )
 
-            # ------------------------------------------------
-            # DOWNLOAD
-            # ------------------------------------------------
+                if "date" in df.columns:
 
-            st.markdown("---")
+                    try:
 
-            csv_data = df.to_csv(index=False).encode("utf-8")
+                        dates = pd.to_datetime(
+                            df["date"],
+                            errors="coerce"
+                        ).dropna()
 
-            st.download_button(
-                "⬇️ Download Cleaned CSV",
-                data=csv_data,
-                file_name="spendshield_cleaned_expenses.csv",
-                mime="text/csv",
-                use_container_width=True
-            )
+                        if not dates.empty:
+
+                            start_date = (
+                                dates.min()
+                                .strftime("%d %b %Y")
+                            )
+
+                            end_date = (
+                                dates.max()
+                                .strftime("%d %b %Y")
+                            )
+
+                            st.caption(
+                                f"📅 {start_date} → "
+                                f"{end_date}"
+                            )
+
+                    except Exception:
+                        pass
+
+            else:
+
+                # Data_loaded may briefly be True while the
+                # dataframe is unavailable. Do not crash.
+
+                st.session_state.data_loaded = False
 
 
 # ============================================================
@@ -548,1037 +610,24 @@ def render_sidebar():
 # ============================================================
 
 def render_hero():
-    """Render application hero section."""
+    """Render application hero."""
 
     st.markdown(
-        """
-        <div class="hero-container">
-            <h1 class="hero-title">🛡️ SpendShield AI</h1>
-            <p class="hero-subtitle">
-                Your money has a problem. We found it.
-            </p>
-        </div>
-        """,
-        unsafe_allow_html=True
+        '<div class="hero-container"><div class="hero-title">🛡️ SpendShield AI</div><div class="hero-subtitle">Your money has a problem. We found it.</div></div>',
+        unsafe_allow_html=True,
     )
 
     st.markdown(
         '<hr class="custom-divider">',
-        unsafe_allow_html=True
+        unsafe_allow_html=True,
     )
-
-
-# ============================================================
-# DASHBOARD
-# ============================================================
-
-def render_dashboard(df, metrics):
-    """Render the main financial intelligence dashboard."""
-
-    # --------------------------------------------------------
-    # HEADER
-    # --------------------------------------------------------
-
-    st.markdown(
-        '<div class="section-title">Financial Command Center</div>',
-        unsafe_allow_html=True
-    )
-
-    st.markdown(
-        '<div class="section-description">'
-        'Understand where your money goes, identify leaks, '
-        'and turn spending data into an actionable plan.'
-        '</div>',
-        unsafe_allow_html=True
-    )
-
-    # --------------------------------------------------------
-    # KPI ROW
-    # --------------------------------------------------------
-
-    col1, col2, col3, col4 = st.columns(4)
-
-    with col1:
-
-        st.metric(
-            "💰 Total Spending",
-            format_currency(metrics["total_spending"]),
-            help="Total valid expenses in the uploaded dataset."
-        )
-
-    with col2:
-
-        st.metric(
-            "🎯 Discretionary",
-            format_currency(metrics["discretionary"]),
-            delta=f"{metrics['discretionary_pct']:.1f}% of spending",
-            help=(
-                "Expenses classified as discretionary. "
-                "These are usually the easiest expenses to optimize."
-            )
-        )
-
-    with col3:
-
-        st.metric(
-            "💎 Savings Opportunity",
-            format_currency(metrics["potential_savings"]),
-            delta=f"{metrics['potential_savings'] * 12:,.0f}/yr",
-            delta_color="normal",
-            help=(
-                "Estimated opportunity if approximately 30% "
-                "of discretionary spending is reduced."
-            )
-        )
-
-    with col4:
-
-        st.metric(
-            "📅 Daily Average",
-            format_currency(metrics["avg_daily"]),
-            help="Average spending per day across the dataset."
-        )
-
-    # --------------------------------------------------------
-    # HEALTH + SUMMARY
-    # --------------------------------------------------------
-
-    st.markdown(
-        '<hr class="custom-divider">',
-        unsafe_allow_html=True
-    )
-
-    health_score = get_financial_health_score(metrics)
-    label = health_label(health_score)
-
-    col1, col2, col3 = st.columns([1, 2, 2])
-
-    with col1:
-
-        st.markdown(
-            f"""
-            <div class="health-score">
-                <div class="health-score-number">
-                    {health_score}/100
-                </div>
-                <div class="health-score-label">
-                    Spending Health<br>
-                    <strong>{label}</strong>
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-
-    with col2:
-
-        st.markdown("### 💡 Quick Diagnosis")
-
-        if metrics["discretionary_pct"] > 40:
-
-            st.warning(
-                f"Your discretionary spending is "
-                f"{metrics['discretionary_pct']:.1f}% of total spending. "
-                "This is your biggest optimization opportunity."
-            )
-
-        elif metrics["discretionary_pct"] > 25:
-
-            st.info(
-                f"{metrics['discretionary_pct']:.1f}% of your spending "
-                "is discretionary. There may be room for meaningful "
-                "optimization."
-            )
-
-        else:
-
-            st.success(
-                f"Only {metrics['discretionary_pct']:.1f}% of your "
-                "spending is discretionary. Your expense mix looks "
-                "relatively controlled."
-            )
-
-    with col3:
-
-        st.markdown("### 🎯 Optimization Target")
-
-        target = metrics["potential_savings"]
-
-        st.metric(
-            "Potential Monthly Reduction",
-            format_currency(target)
-        )
-
-        st.caption(
-            "Illustrative target based on reducing ~30% "
-            "of discretionary expenses."
-        )
-
-    # --------------------------------------------------------
-    # CHARTS
-    # --------------------------------------------------------
-
-    st.markdown(
-        '<hr class="custom-divider">',
-        unsafe_allow_html=True
-    )
-
-    st.markdown(
-        '<div class="section-title">Spending Intelligence</div>',
-        unsafe_allow_html=True
-    )
-
-    col1, col2 = st.columns(2)
-
-    with col1:
-
-        st.subheader("📊 Spending by Category")
-
-        fig = charts.create_category_chart(df)
-
-        st.plotly_chart(
-            fig,
-            use_container_width=True,
-            key="category_chart"
-        )
-
-    with col2:
-
-        st.subheader("⚖️ Essential vs Discretionary")
-
-        fig = charts.create_essential_vs_discretionary(df)
-
-        st.plotly_chart(
-            fig,
-            use_container_width=True,
-            key="essential_chart"
-        )
-
-    col1, col2 = st.columns(2)
-
-    with col1:
-
-        st.subheader("🔥 Top Spending Categories")
-
-        fig = charts.create_top_categories_chart(df)
-
-        st.plotly_chart(
-            fig,
-            use_container_width=True,
-            key="top_categories_chart"
-        )
-
-    with col2:
-
-        st.subheader("📈 Spending Trend")
-
-        fig = charts.create_trend_chart(df)
-
-        st.plotly_chart(
-            fig,
-            use_container_width=True,
-            key="trend_chart"
-        )
-
-    # --------------------------------------------------------
-    # AI ANALYSIS
-    # --------------------------------------------------------
-
-    render_ai_analysis(df)
-
-
-# ============================================================
-# AI ANALYSIS
-# ============================================================
-
-def render_ai_analysis(df):
-    """Render AI financial diagnosis and recovery plan."""
-
-    st.markdown(
-        '<hr class="custom-divider">',
-        unsafe_allow_html=True
-    )
-
-    st.markdown(
-        """
-        <div class="ai-card">
-            <div class="ai-card-title">
-                🤖 AI Financial Diagnosis
-            </div>
-            <div class="ai-card-text">
-                SpendShield analyzes your actual transactions to
-                identify money leaks, recurring expenses and
-                opportunities for improvement.
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
-
-    current_version = dataframe_signature(df)
-
-    # Detect if displayed analysis is stale.
-    if (
-        st.session_state.analysis_done
-        and st.session_state.analysis_version != current_version
-    ):
-        invalidate_analysis()
-
-    col1, col2 = st.columns([3, 1])
-
-    with col1:
-
-        if st.session_state.analysis_done:
-
-            timestamp = st.session_state.analysis_timestamp
-
-            if timestamp:
-
-                st.caption(
-                    f"Analysis generated on "
-                    f"{timestamp.strftime('%d %b %Y at %I:%M %p')}"
-                )
-
-        else:
-
-            st.markdown(
-                "Get a brutally honest diagnosis and a "
-                "personalized recovery strategy."
-            )
-
-    with col2:
-
-        button_text = (
-            "🔄 Re-analyze"
-            if st.session_state.analysis_done
-            else "🔍 Analyze My Spending"
-        )
-
-        analyze_button = st.button(
-            button_text,
-            use_container_width=True,
-            type="primary"
-        )
-
-    if analyze_button:
-
-        with st.spinner(
-            "🧠 AI is studying your spending patterns..."
-        ):
-
-            try:
-
-                result = gemini_service.analyze_spending(df)
-
-                if result:
-
-                    st.session_state.roast_result = (
-                        result.get("roast")
-                    )
-
-                    st.session_state.recovery_plan = (
-                        result.get("recovery_plan")
-                    )
-
-                    st.session_state.analysis_done = True
-                    st.session_state.analysis_version = (
-                        current_version
-                    )
-
-                    st.session_state.analysis_timestamp = (
-                        datetime.now()
-                    )
-
-                    st.success(
-                        "✅ Financial diagnosis complete."
-                    )
-
-                    st.rerun()
-
-                else:
-
-                    st.error(
-                        "The AI analysis could not be completed. "
-                        "Please check your Gemini API configuration."
-                    )
-
-            except Exception as e:
-
-                st.error(
-                    f"Analysis failed: {str(e)}"
-                )
-
-    # --------------------------------------------------------
-    # DISPLAY RESULTS
-    # --------------------------------------------------------
-
-    if not st.session_state.analysis_done:
-        return
-
-    roast = st.session_state.roast_result
-    plan = st.session_state.recovery_plan
-
-    # --------------------------------------------------------
-    # ROAST
-    # --------------------------------------------------------
-
-    if roast:
-
-        with st.expander(
-            "🔥 Your Financial Roast",
-            expanded=True
-        ):
-
-            st.markdown(roast)
-
-    # --------------------------------------------------------
-    # RECOVERY PLAN
-    # --------------------------------------------------------
-
-    if plan:
-
-        with st.expander(
-            "🛡️ Your Recovery Plan",
-            expanded=True
-        ):
-
-            if isinstance(plan, dict):
-
-                summary = plan.get(
-                    "summary",
-                    "Your personalized recovery strategy."
-                )
-
-                st.markdown(
-                    f"### {summary}"
-                )
-
-                # Savings metrics
-                col1, col2, col3 = st.columns(3)
-
-                monthly_savings = plan.get(
-                    "monthly_savings",
-                    0
-                )
-
-                annual_savings = plan.get(
-                    "annual_savings",
-                    0
-                )
-
-                with col1:
-
-                    st.metric(
-                        "💰 Monthly Opportunity",
-                        format_currency(monthly_savings)
-                    )
-
-                with col2:
-
-                    st.metric(
-                        "📈 Annual Opportunity",
-                        format_currency(annual_savings)
-                    )
-
-                with col3:
-
-                    if annual_savings:
-
-                        st.metric(
-                            "🚀 12-Month Impact",
-                            format_currency(annual_savings)
-                        )
-
-                    else:
-
-                        st.metric(
-                            "🚀 Priority",
-                            "Start Now"
-                        )
-
-                # Money leaks
-                top_leaks = plan.get(
-                    "top_leaks",
-                    []
-                )
-
-                if top_leaks:
-
-                    st.markdown("#### 🔥 Biggest Money Leaks")
-
-                    for index, leak in enumerate(
-                        top_leaks,
-                        start=1
-                    ):
-
-                        st.markdown(
-                            f"**{index}.** {leak}"
-                        )
-
-                # Recommended cuts
-                cuts = plan.get(
-                    "recommended_cuts",
-                    []
-                )
-
-                if cuts:
-
-                    st.markdown(
-                        "#### ✂️ Recommended Cuts"
-                    )
-
-                    for cut in cuts:
-
-                        st.markdown(
-                            f"- {cut}"
-                        )
-
-                # Priority actions
-                actions = plan.get(
-                    "priority_actions",
-                    []
-                )
-
-                if actions:
-
-                    st.markdown(
-                        "#### ✅ Priority Actions"
-                    )
-
-                    for index, action in enumerate(
-                        actions,
-                        start=1
-                    ):
-
-                        st.markdown(
-                            f"**{index}.** {action}"
-                        )
-
-                # Weekly challenge
-                challenge = plan.get(
-                    "weekly_challenge"
-                )
-
-                if challenge:
-
-                    st.markdown(
-                        "#### 🏆 7-Day Challenge"
-                    )
-
-                    st.info(challenge)
-
-            else:
-
-                st.markdown(str(plan))
-
-
-# ============================================================
-# DATA EDITOR
-# ============================================================
-
-def render_data_editor(df):
-    """Render editable expense dataset."""
-
-    st.markdown(
-        '<div class="section-title">'
-        '✏️ Expense Data Editor'
-        '</div>',
-        unsafe_allow_html=True
-    )
-
-    st.markdown(
-        '<div class="section-description">'
-        'Correct transactions, categorize expenses and '
-        'immediately see the effect on your financial analysis.'
-        '</div>',
-        unsafe_allow_html=True
-    )
-
-    if df.empty:
-
-        st.warning(
-            "There are no transactions to edit."
-        )
-
-        return
-
-    edited_df = st.data_editor(
-        df,
-        use_container_width=True,
-        num_rows="dynamic",
-        hide_index=True,
-        key="expense_data_editor",
-        column_config={
-            "date": st.column_config.DateColumn(
-                "Date",
-                format="DD MMM YYYY"
-            ),
-
-            "description": st.column_config.TextColumn(
-                "Description",
-                required=True
-            ),
-
-            "category": st.column_config.SelectboxColumn(
-                "Category",
-                options=sorted(
-                    df["category"]
-                    .dropna()
-                    .astype(str)
-                    .unique()
-                    .tolist()
-                )
-            ),
-
-            "amount": st.column_config.NumberColumn(
-                "Amount",
-                format="₹%.2f",
-                min_value=0
-            ),
-
-            "type": st.column_config.SelectboxColumn(
-                "Type",
-                options=[
-                    "Essential",
-                    "Discretionary"
-                ]
-            )
-        }
-    )
-
-    if edited_df is None:
-        return
-
-    # Normalize edited dataframe.
-    edited_df = edited_df.copy()
-
-    if "amount" in edited_df.columns:
-
-        edited_df["amount"] = pd.to_numeric(
-            edited_df["amount"],
-            errors="coerce"
-        )
-
-    # Detect modifications.
-    if not edited_df.equals(df):
-
-        edited_df = edited_df.dropna(
-            subset=["amount"]
-        )
-
-        edited_df = edited_df[
-            edited_df["amount"] > 0
-        ]
-
-        update_data(edited_df)
-
-        st.success(
-            "✅ Changes saved. AI analysis has been refreshed "
-            "to reflect the updated data."
-        )
-
-    # --------------------------------------------------------
-    # DATA STATISTICS
-    # --------------------------------------------------------
-
-    st.markdown("---")
-
-    col1, col2, col3, col4 = st.columns(4)
-
-    with col1:
-
-        st.metric(
-            "Transactions",
-            f"{len(edited_df):,}"
-        )
-
-    with col2:
-
-        st.metric(
-            "Total Spending",
-            format_currency(
-                edited_df["amount"].sum()
-            )
-        )
-
-    with col3:
-
-        st.metric(
-            "Average Transaction",
-            f"₹{edited_df['amount'].mean():,.0f}"
-            if not edited_df.empty
-            else "₹0"
-        )
-
-    with col4:
-
-        if not edited_df.empty:
-
-            largest = edited_df["amount"].max()
-
-        else:
-
-            largest = 0
-
-        st.metric(
-            "Largest Expense",
-            format_currency(largest)
-        )
-
-
-# ============================================================
-# RECEIPT SCANNER
-# ============================================================
-
-def render_receipt_scanner():
-    """Render AI-powered receipt scanner."""
-
-    st.markdown(
-        '<div class="section-title">'
-        '📸 AI Receipt Scanner'
-        '</div>',
-        unsafe_allow_html=True
-    )
-
-    st.markdown(
-        '<div class="section-description">'
-        'Upload a receipt and let AI extract the transaction '
-        'details automatically.'
-        '</div>',
-        unsafe_allow_html=True
-    )
-
-    try:
-
-        from services import receipt_service
-
-    except ImportError:
-
-        st.error(
-            "Receipt scanner service is not available."
-        )
-
-        return
-
-    input_method = st.radio(
-        "Receipt source",
-        [
-            "📁 Upload Image",
-            "📷 Take Photo"
-        ],
-        horizontal=True
-    )
-
-    image_data = None
-
-    if input_method == "📁 Upload Image":
-
-        image_data = st.file_uploader(
-            "Choose a receipt image",
-            type=[
-                "jpg",
-                "jpeg",
-                "png",
-                "webp"
-            ],
-            help="Use a clear, well-lit receipt image."
-        )
-
-    else:
-
-        image_data = st.camera_input(
-            "Take a photo of your receipt"
-        )
-
-    if image_data is not None:
-
-        st.image(
-            image_data,
-            caption="Receipt Preview",
-            use_container_width=True
-        )
-
-        if st.button(
-            "🔍 Extract Transaction",
-            use_container_width=True,
-            type="primary"
-        ):
-
-            with st.spinner(
-                "🧠 AI is reading your receipt..."
-            ):
-
-                try:
-
-                    extracted = (
-                        receipt_service.extract_receipt_data(
-                            image_data
-                        )
-                    )
-
-                    if extracted:
-
-                        st.session_state.receipt_data = (
-                            extracted
-                        )
-
-                        st.success(
-                            "✅ Receipt successfully processed."
-                        )
-
-                        st.rerun()
-
-                    else:
-
-                        st.error(
-                            "Could not extract useful data "
-                            "from this receipt."
-                        )
-
-                except Exception as e:
-
-                    st.error(
-                        f"Receipt extraction failed: {str(e)}"
-                    )
-
-    # --------------------------------------------------------
-    # EXTRACTED DATA
-    # --------------------------------------------------------
-
-    data = st.session_state.receipt_data
-
-    if not data:
-        return
-
-    st.markdown("---")
-
-    st.subheader(
-        "📋 Extracted Transaction"
-    )
-
-    # Handle raw text fallback.
-    if "raw_text" in data and not data.get("merchant"):
-
-        st.warning(
-            "The AI could not confidently structure "
-            "the receipt."
-        )
-
-        st.markdown(
-            data.get("raw_text", "")
-        )
-
-        if st.button(
-            "❌ Discard",
-            use_container_width=True
-        ):
-
-            st.session_state.receipt_data = None
-            st.rerun()
-
-        return
-
-    col1, col2 = st.columns(2)
-
-    with col1:
-
-        merchant = st.text_input(
-            "Merchant",
-            value=str(
-                data.get(
-                    "merchant",
-                    ""
-                ) or ""
-            )
-        )
-
-        date_value = st.text_input(
-            "Date",
-            value=str(
-                data.get(
-                    "date",
-                    ""
-                ) or ""
-            )
-        )
-
-        category = st.selectbox(
-            "Category",
-            [
-                "Food",
-                "Transport",
-                "Shopping",
-                "Entertainment",
-                "Utilities",
-                "Health",
-                "Housing",
-                "Dining",
-                "Other"
-            ],
-            index=(
-                [
-                    "Food",
-                    "Transport",
-                    "Shopping",
-                    "Entertainment",
-                    "Utilities",
-                    "Health",
-                    "Housing",
-                    "Dining",
-                    "Other"
-                ].index(
-                    data.get(
-                        "category",
-                        "Other"
-                    )
-                )
-                if data.get("category") in [
-                    "Food",
-                    "Transport",
-                    "Shopping",
-                    "Entertainment",
-                    "Utilities",
-                    "Health",
-                    "Housing",
-                    "Dining",
-                    "Other"
-                ]
-                else 8
-            )
-        )
-
-    with col2:
-
-        try:
-
-            amount_value = float(
-                data.get(
-                    "amount",
-                    0
-                ) or 0
-            )
-
-        except (TypeError, ValueError):
-
-            amount_value = 0.0
-
-        amount = st.number_input(
-            "Amount (₹)",
-            min_value=0.0,
-            value=amount_value,
-            step=1.0
-        )
-
-        expense_type = st.selectbox(
-            "Expense Type",
-            [
-                "Discretionary",
-                "Essential"
-            ]
-        )
-
-    items = data.get(
-        "items",
-        []
-    )
-
-    if items:
-
-        st.markdown("#### 🧾 Items")
-
-        for item in items:
-
-            st.markdown(
-                f"- {item}"
-            )
-
-    # --------------------------------------------------------
-    # CONFIRM / DISCARD
-    # --------------------------------------------------------
-
-    col1, col2 = st.columns(2)
-
-    with col1:
-
-        if st.button(
-            "✅ Confirm & Add Expense",
-            use_container_width=True,
-            type="primary"
-        ):
-
-            if not merchant.strip():
-
-                st.error(
-                    "Please enter a merchant name."
-                )
-
-                return
-
-            if amount <= 0:
-
-                st.error(
-                    "Amount must be greater than ₹0."
-                )
-
-                return
-
-            try:
-
-                parsed_date = pd.to_datetime(
-                    date_value
-                )
-
-            except Exception:
-
-                parsed_date = pd.Timestamp.now()
-
-            current_df = st.session_state.df_cleaned
-
-            new_row = pd.DataFrame(
-                [{
-                    "date": parsed_date,
-                    "description": merchant.strip(),
-                    "category": category,
-                    "amount": amount,
-                    "type": expense_type
-                }]
-            )
-
-            updated_df = pd.concat(
-                [
-                    current_df,
-                    new_row
-                ],
-                ignore_index=True
-            )
-
-            update_data(updated_df)
-
-            st.session_state.receipt_data = None
-
-            st.success(
-                "✅ Expense added to SpendShield."
-            )
-
-            st.rerun()
-
-    with col2:
-
-        if st.button(
-            "❌ Discard",
-            use_container_width=True
-        ):
-
-            st.session_state.receipt_data = None
-            st.rerun()
-
 
 # ============================================================
 # LANDING PAGE
 # ============================================================
 
 def render_landing_page():
-    """Render the page shown before a dataset is loaded."""
+    """Render page before data is loaded."""
 
     st.markdown(
         """
@@ -1617,8 +666,8 @@ def render_landing_page():
         st.markdown("### 📊 Understand")
 
         st.caption(
-            "Visualize spending by category, transaction type "
-            "and time."
+            "Visualize spending by category, "
+            "transaction type and time."
         )
 
     with col2:
@@ -1626,8 +675,8 @@ def render_landing_page():
         st.markdown("### 🤖 Diagnose")
 
         st.caption(
-            "Use AI to discover recurring expenses and "
-            "hidden spending patterns."
+            "Use AI to discover spending patterns "
+            "and money leaks."
         )
 
     with col3:
@@ -1635,18 +684,20 @@ def render_landing_page():
         st.markdown("### 🛡️ Recover")
 
         st.caption(
-            "Get a personalized action plan designed around "
-            "your actual spending."
+            "Get a personalized action plan "
+            "based on your spending."
         )
 
     st.markdown("---")
 
     st.info(
-        "👈 Upload a CSV from the sidebar or load the demo "
-        "dataset to explore SpendShield AI."
+        "👈 Upload a CSV from the sidebar or "
+        "load the demo dataset."
     )
 
-    st.markdown("### 📋 Required CSV Format")
+    st.markdown(
+        "### 📋 Required CSV Format"
+    )
 
     sample = pd.DataFrame(
         {
@@ -1665,9 +716,762 @@ def render_landing_page():
     )
 
     st.caption(
-        "Required columns: date, description, category, "
-        "amount, type"
+        "Required columns: date, description, "
+        "category, amount, type"
     )
+
+
+# ============================================================
+# DASHBOARD
+# ============================================================
+
+def render_dashboard(
+    df,
+    metrics
+):
+    """Render dashboard."""
+
+    st.markdown(
+        '<div class="section-title">'
+        '📊 Financial Dashboard'
+        '</div>',
+        unsafe_allow_html=True
+    )
+
+    # --------------------------------------------------------
+    # KPI ROW
+    # --------------------------------------------------------
+
+    col1, col2, col3, col4 = st.columns(4)
+
+    with col1:
+
+        st.metric(
+            "💰 Total Spending",
+            format_currency(
+                metrics["total_spending"]
+            ),
+            delta=(
+                f"{format_currency(metrics['avg_monthly'])}"
+                " avg/month"
+            )
+        )
+
+    with col2:
+
+        st.metric(
+            "🎯 Discretionary",
+            format_currency(
+                metrics["discretionary"]
+            ),
+            delta=(
+                f"{metrics['discretionary_pct']:.1f}%"
+            ),
+            delta_color="inverse"
+        )
+
+    with col3:
+
+        st.metric(
+            "💎 Potential Savings",
+            format_currency(
+                metrics["potential_savings"]
+            ),
+            delta=(
+                f"{format_currency(metrics['potential_savings'] * 12)}"
+                " /year"
+            )
+        )
+
+    with col4:
+
+        score = get_financial_health_score(
+            metrics
+        )
+
+        st.metric(
+            "🛡️ Spending Health",
+            f"{score}/100",
+            delta=health_label(score),
+            delta_color="off"
+        )
+
+    st.markdown("---")
+
+    # --------------------------------------------------------
+    # CHARTS
+    # --------------------------------------------------------
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+
+        st.subheader(
+            "📊 Spending by Category"
+        )
+
+        try:
+
+            fig = charts.create_category_chart(
+                df
+            )
+
+            st.plotly_chart(
+                fig,
+                use_container_width=True
+            )
+
+        except Exception as e:
+
+            st.error(
+                f"Could not create category chart: {str(e)}"
+            )
+
+    with col2:
+
+        st.subheader(
+            "📈 Essential vs Discretionary"
+        )
+
+        try:
+
+            fig = (
+                charts
+                .create_essential_vs_discretionary(
+                    df
+                )
+            )
+
+            st.plotly_chart(
+                fig,
+                use_container_width=True
+            )
+
+        except Exception as e:
+
+            st.error(
+                f"Could not create spending chart: {str(e)}"
+            )
+
+    col3, col4 = st.columns(2)
+
+    with col3:
+
+        st.subheader(
+            "📉 Top Spending Categories"
+        )
+
+        try:
+
+            fig = (
+                charts
+                .create_top_categories_chart(
+                    df
+                )
+            )
+
+            st.plotly_chart(
+                fig,
+                use_container_width=True
+            )
+
+        except Exception as e:
+
+            st.error(
+                f"Could not create category chart: {str(e)}"
+            )
+
+    with col4:
+
+        st.subheader(
+            "📅 Spending Trend"
+        )
+
+        try:
+
+            fig = charts.create_trend_chart(
+                df.copy()
+            )
+
+            st.plotly_chart(
+                fig,
+                use_container_width=True
+            )
+
+        except Exception as e:
+
+            st.error(
+                f"Could not create trend chart: {str(e)}"
+            )
+
+    # --------------------------------------------------------
+    # AI ANALYSIS
+    # --------------------------------------------------------
+
+    st.markdown("---")
+
+    st.markdown(
+        '<div class="section-title">'
+        '🤖 AI Financial Diagnosis'
+        '</div>',
+        unsafe_allow_html=True
+    )
+
+    st.markdown(
+        """
+        <div class="ai-card">
+
+        <div class="ai-card-title">
+        Find your biggest money leaks.
+        </div>
+
+        <div class="ai-card-text">
+        SpendShield AI will analyze your spending,
+        roast your worst habits, and create a
+        personalized recovery plan.
+        </div>
+
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+    if st.button(
+        "🔍 Analyze My Spending",
+        use_container_width=True,
+        key="analyze_spending"
+    ):
+
+        with st.spinner(
+            "🧠 AI is analyzing your spending..."
+        ):
+
+            try:
+
+                result = (
+                    gemini_service
+                    .analyze_spending(df)
+                )
+
+                if result:
+
+                    st.session_state.roast_result = (
+                        result.get("roast")
+                    )
+
+                    st.session_state.recovery_plan = (
+                        result.get(
+                            "recovery_plan"
+                        )
+                    )
+
+                    st.session_state.analysis_done = True
+
+                    st.session_state.analysis_version = (
+                        st.session_state.data_version
+                    )
+
+                    st.session_state.analysis_timestamp = (
+                        datetime.now()
+                    )
+
+                    st.success(
+                        "✅ Analysis complete!"
+                    )
+
+                    st.rerun()
+
+                else:
+
+                    st.error(
+                        "❌ Gemini could not analyze "
+                        "your spending."
+                    )
+
+            except Exception as e:
+
+                st.error(
+                    f"Analysis failed: {str(e)}"
+                )
+
+    # --------------------------------------------------------
+    # AI RESULTS
+    # --------------------------------------------------------
+
+    if st.session_state.analysis_done:
+
+        st.markdown("---")
+
+        with st.expander(
+            "🔥 Brutal Roast",
+            expanded=True
+        ):
+
+            roast = (
+                st.session_state.roast_result
+            )
+
+            if roast:
+
+                st.markdown(
+                    roast
+                )
+
+            else:
+
+                st.info(
+                    "No roast was returned."
+                )
+
+        with st.expander(
+            "📋 Recovery Plan",
+            expanded=True
+        ):
+
+            plan = (
+                st.session_state.recovery_plan
+            )
+
+            if isinstance(plan, dict):
+
+                st.markdown(
+                    f"### "
+                    f"{plan.get('summary', 'Recovery Plan')}"
+                )
+
+                col1, col2 = st.columns(2)
+
+                with col1:
+
+                    st.metric(
+                        "Monthly Savings",
+                        format_currency(
+                            plan.get(
+                                "monthly_savings",
+                                0
+                            )
+                        )
+                    )
+
+                with col2:
+
+                    st.metric(
+                        "Annual Savings",
+                        format_currency(
+                            plan.get(
+                                "annual_savings",
+                                0
+                            )
+                        )
+                    )
+
+                st.markdown(
+                    "#### 🔥 Top Money Leaks"
+                )
+
+                for leak in plan.get(
+                    "top_leaks",
+                    []
+                ):
+
+                    st.markdown(
+                        f"- {leak}"
+                    )
+
+                st.markdown(
+                    "#### ✂️ Recommended Cuts"
+                )
+
+                for cut in plan.get(
+                    "recommended_cuts",
+                    []
+                ):
+
+                    st.markdown(
+                        f"- {cut}"
+                    )
+
+                st.markdown(
+                    "#### ✅ Priority Actions"
+                )
+
+                for action in plan.get(
+                    "priority_actions",
+                    []
+                ):
+
+                    st.markdown(
+                        f"- {action}"
+                    )
+
+                challenge = plan.get(
+                    "weekly_challenge"
+                )
+
+                if challenge:
+
+                    st.markdown(
+                        f"**Weekly Challenge:** "
+                        f"{challenge}"
+                    )
+
+            else:
+
+                st.markdown(
+                    str(plan)
+                )
+
+
+# ============================================================
+# DATA EDITOR
+# ============================================================
+
+def render_data_editor(df):
+    """Render editable expense table."""
+
+    st.markdown(
+        '<div class="section-title">'
+        '✏️ Data Editor'
+        '</div>',
+        unsafe_allow_html=True
+    )
+
+    st.info(
+        "Edit your expense data below. "
+        "Changes are stored in your current session."
+    )
+
+    edited_df = st.data_editor(
+        df,
+        use_container_width=True,
+        num_rows="dynamic",
+        hide_index=True,
+        key="expense_data_editor"
+    )
+
+    if edited_df is not None:
+
+        if not edited_df.equals(df):
+
+            edited_df = edited_df.copy()
+
+            update_data(
+                edited_df
+            )
+
+            st.success(
+                "✅ Expense data updated."
+            )
+
+            st.rerun()
+
+    st.markdown("---")
+
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+
+        st.metric(
+            "Transactions",
+            f"{len(edited_df):,}"
+        )
+
+    with col2:
+
+        total = pd.to_numeric(
+            edited_df["amount"],
+            errors="coerce"
+        ).sum()
+
+        st.metric(
+            "Total Spending",
+            format_currency(total)
+        )
+
+    with col3:
+
+        average = pd.to_numeric(
+            edited_df["amount"],
+            errors="coerce"
+        ).mean()
+
+        st.metric(
+            "Average Transaction",
+            format_currency(average)
+        )
+
+
+# ============================================================
+# RECEIPT SCANNER
+# ============================================================
+
+def render_receipt_scanner():
+    """Render receipt scanner."""
+
+    st.markdown(
+        '<div class="section-title">'
+        '📸 Receipt Scanner'
+        '</div>',
+        unsafe_allow_html=True
+    )
+
+    st.info(
+        "Upload or photograph a receipt and Gemini "
+        "will extract the expense information."
+    )
+
+    from services import receipt_service
+
+    input_method = st.radio(
+        "Choose input method",
+        [
+            "Upload Image",
+            "Take Photo"
+        ],
+        horizontal=True
+    )
+
+    image_data = None
+
+    if input_method == "Upload Image":
+
+        image_data = st.file_uploader(
+            "Upload receipt",
+            type=[
+                "jpg",
+                "jpeg",
+                "png",
+                "webp"
+            ],
+            key="receipt_upload"
+        )
+
+    else:
+
+        image_data = st.camera_input(
+            "Take a photo of your receipt"
+        )
+
+    if image_data is not None:
+
+        st.image(
+            image_data,
+            caption="Receipt",
+            use_container_width=True
+        )
+
+        if st.button(
+            "🔍 Extract Receipt Data",
+            use_container_width=True,
+            key="extract_receipt"
+        ):
+
+            with st.spinner(
+                "🧠 Gemini is reading your receipt..."
+            ):
+
+                try:
+
+                    extracted = (
+                        receipt_service
+                        .extract_receipt_data(
+                            image_data
+                        )
+                    )
+
+                    if extracted:
+
+                        st.session_state.receipt_data = (
+                            extracted
+                        )
+
+                        st.success(
+                            "✅ Receipt data extracted!"
+                        )
+
+                        st.rerun()
+
+                    else:
+
+                        st.error(
+                            "❌ Gemini could not extract "
+                            "receipt data."
+                        )
+
+                except Exception as e:
+
+                    st.error(
+                        f"Receipt extraction failed: {str(e)}"
+                    )
+
+    # --------------------------------------------------------
+    # DISPLAY RECEIPT DATA
+    # --------------------------------------------------------
+
+    data = st.session_state.get(
+        "receipt_data"
+    )
+
+    if data:
+
+        st.markdown("---")
+
+        st.subheader(
+            "📋 Extracted Receipt Data"
+        )
+
+        st.write(
+            f"**Merchant:** "
+            f"{data.get('merchant') or 'N/A'}"
+        )
+
+        st.write(
+            f"**Date:** "
+            f"{data.get('date') or 'N/A'}"
+        )
+
+        amount = data.get(
+            "amount"
+        )
+
+        if amount is not None:
+
+            try:
+
+                st.write(
+                    f"**Amount:** "
+                    f"₹{float(amount):,.2f}"
+                )
+
+            except Exception:
+
+                st.write(
+                    f"**Amount:** {amount}"
+                )
+
+        else:
+
+            st.write(
+                "**Amount:** N/A"
+            )
+
+        st.write(
+            f"**Category:** "
+            f"{data.get('category') or 'Other'}"
+        )
+
+        items = data.get(
+            "items",
+            []
+        )
+
+        if items:
+
+            st.markdown(
+                "**Items:**"
+            )
+
+            for item in items:
+
+                st.markdown(
+                    f"- {item}"
+                )
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+
+            if st.button(
+                "✅ Confirm & Add Expense",
+                use_container_width=True,
+                key="confirm_receipt"
+            ):
+
+                try:
+
+                    amount = float(
+                        data.get(
+                            "amount",
+                            0
+                        )
+                    )
+
+                except (
+                    ValueError,
+                    TypeError
+                ):
+
+                    amount = 0
+
+                if amount <= 0:
+
+                    st.error(
+                        "Invalid receipt amount."
+                    )
+
+                else:
+
+                    current_df = (
+                        st.session_state
+                        .df_cleaned
+                    )
+
+                    new_row = pd.DataFrame(
+                        [
+                            {
+                                "date": data.get(
+                                    "date",
+                                    pd.Timestamp.now().date()
+                                ),
+                                "description": data.get(
+                                    "merchant",
+                                    "Receipt"
+                                ),
+                                "category": data.get(
+                                    "category",
+                                    "Other"
+                                ),
+                                "amount": amount,
+                                "type": "Discretionary"
+                            }
+                        ]
+                    )
+
+                    updated_df = pd.concat(
+                        [
+                            current_df,
+                            new_row
+                        ],
+                        ignore_index=True
+                    )
+
+                    update_data(
+                        updated_df
+                    )
+
+                    st.session_state.receipt_data = (
+                        None
+                    )
+
+                    st.success(
+                        "✅ Expense added to SpendShield."
+                    )
+
+                    st.rerun()
+
+        with col2:
+
+            if st.button(
+                "❌ Discard",
+                use_container_width=True,
+                key="discard_receipt"
+            ):
+
+                st.session_state.receipt_data = (
+                    None
+                )
+
+                st.rerun()
 
 
 # ============================================================
@@ -1695,18 +1499,34 @@ def main():
     # VALIDATE DATA
     # --------------------------------------------------------
 
-    df = st.session_state.df_cleaned
+    df = st.session_state.get(
+        "df_cleaned"
+    )
 
-    if df is None or df.empty:
+    if (
+        df is None
+        or not isinstance(
+            df,
+            pd.DataFrame
+        )
+        or df.empty
+    ):
+
+        st.session_state.data_loaded = False
 
         st.warning(
-            "Your dataset does not contain any valid "
-            "transactions."
+            "Your dataset does not contain any "
+            "valid transactions."
         )
+
+        render_landing_page()
 
         return
 
-    # Ensure data version exists.
+    # --------------------------------------------------------
+    # DATA VERSION
+    # --------------------------------------------------------
+
     if st.session_state.data_version is None:
 
         st.session_state.data_version = (
@@ -1721,7 +1541,11 @@ def main():
 
     if section == "Dashboard":
 
-        metrics = calculations.calculate_metrics(df)
+        metrics = (
+            calculations.calculate_metrics(
+                df
+            )
+        )
 
         render_dashboard(
             df,
@@ -1730,7 +1554,9 @@ def main():
 
     elif section == "Data Editor":
 
-        render_data_editor(df)
+        render_data_editor(
+            df
+        )
 
     elif section == "Budget Simulator":
 
@@ -1743,13 +1569,15 @@ def main():
 
         st.markdown(
             '<div class="section-description">'
-            'Experiment with spending reductions and see '
-            'their potential impact.'
+            'Experiment with spending reductions and '
+            'see their potential impact.'
             '</div>',
             unsafe_allow_html=True
         )
 
-        budget_simulator.render_simulator(df)
+        budget_simulator.render_simulator(
+            df
+        )
 
     elif section == "Receipt Scanner":
 
@@ -1757,7 +1585,9 @@ def main():
 
     else:
 
-        st.session_state.nav_section = "Dashboard"
+        st.session_state.nav_section = (
+            "Dashboard"
+        )
 
         st.rerun()
 

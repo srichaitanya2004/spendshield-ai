@@ -1,0 +1,25 @@
+date,description,category,amount,type
+2026-08-01,Monthly Rent,Housing,15000,Essential
+2026-08-02,Grocery Store,Food,4200,Essential
+2026-08-03,Metro Recharge,Transport,1200,Essential
+2026-08-04,Electricity Bill,Utilities,1800,Essential
+2026-08-05,Netflix Subscription,Entertainment,649,Discretionary
+2026-08-06,Restaurant Dinner,Dining,1250,Discretionary
+2026-08-07,Uber Ride,Transport,480,Essential
+2026-08-08,Amazon Shopping,Shopping,2200,Discretionary
+2026-08-09,Pharmacy,Health,850,Essential
+2026-08-10,Coffee,Dining,220,Discretionary
+2026-08-11,Grocery Store,Food,3100,Essential
+2026-08-12,Movie Tickets,Entertainment,900,Discretionary
+2026-08-13,Mobile Bill,Utilities,799,Essential
+2026-08-14,Clothing,Shopping,1800,Discretionary
+2026-08-15,Fuel,Transport,2500,Essential
+2026-08-16,Restaurant Lunch,Dining,750,Discretionary
+2026-08-17,Grocery Store,Food,2800,Essential
+2026-08-18,Gym Membership,Health,1500,Discretionary
+2026-08-19,Online Shopping,Shopping,1350,Discretionary
+2026-08-20,Electricity Bill,Utilities,1650,Essential
+2026-08-21,Cab Ride,Transport,650,Essential
+2026-08-22,Restaurant Dinner,Dining,1400,Discretionary
+2026-08-23,Groceries,Food,3600,Essential
+2026-08-24,Gaming Purchase,Entertainment,1100,Discretionary

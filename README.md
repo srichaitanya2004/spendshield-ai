@@ -6,7 +6,7 @@
 
 🚀 **[Live Demo](https://spendshield-ai-n4pvqhsxqoeyjvd7djg9vn.streamlit.app/)**  
 💻 **[GitHub Repository](https://github.com/srichaitanya2004/spendshield-ai)**  
-🔗 **[LinkedIn Post](YOUR_LINKEDIN_POST_URL)**
+🔗 **[LinkedIn Post](https://lnkd.in/p/d7XdCrCV)**
 
 </p>
 
